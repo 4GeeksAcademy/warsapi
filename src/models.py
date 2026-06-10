@@ -1,126 +1,126 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from datetime import datetime
 
 db = SQLAlchemy()
 
 
 class User(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    __tablename__ = "user"
 
-    favorites: Mapped[list["Favorite"]] = relationship(
-        "Favorite",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
+    id         = db.Column(db.Integer, primary_key=True)
+    username   = db.Column(db.String(80),  unique=True, nullable=False)
+    email      = db.Column(db.String(120), unique=True, nullable=False)
+    password   = db.Column(db.String(255), nullable=False)
+    is_active  = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    def serialize(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            "is_active": self.is_active
-            # do not serialize the password, its a security breach
-        }
+    favorites  = db.relationship("Favorite", back_populates="user",
+                                 cascade="all, delete-orphan", lazy=True)
 
-
-class People(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), nullable=False)
-    height: Mapped[str] = mapped_column(String(50), nullable=True)
-    mass: Mapped[str] = mapped_column(String(50), nullable=True)
-    hair_color: Mapped[str] = mapped_column(String(50), nullable=True)
-    skin_color: Mapped[str] = mapped_column(String(50), nullable=True)
-    eye_color: Mapped[str] = mapped_column(String(50), nullable=True)
-    birth_year: Mapped[str] = mapped_column(String(50), nullable=True)
-    gender: Mapped[str] = mapped_column(String(50), nullable=True)
-
-    favorites: Mapped[list["Favorite"]] = relationship(
-        "Favorite",
-        back_populates="people",
-        cascade="all, delete-orphan"
-    )
+    def __repr__(self):
+        return f"<User {self.email}>"
 
     def serialize(self):
         return {
-            "id": self.id,
-            "name": self.name,
-            "height": self.height,
-            "mass": self.mass,
-            "hair_color": self.hair_color,
-            "skin_color": self.skin_color,
-            "eye_color": self.eye_color,
-            "birth_year": self.birth_year,
-            "gender": self.gender
+            "id":         self.id,
+            "username":   self.username,
+            "email":      self.email,
+            "is_active":  self.is_active,
+            "created_at": self.created_at.isoformat(),
+            # never serialize the password!
         }
 
 
 class Planet(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(120), nullable=False)
-    climate: Mapped[str] = mapped_column(String(120), nullable=True)
-    terrain: Mapped[str] = mapped_column(String(120), nullable=True)
-    population: Mapped[str] = mapped_column(String(120), nullable=True)
-    diameter: Mapped[str] = mapped_column(String(120), nullable=True)
-    gravity: Mapped[str] = mapped_column(String(120), nullable=True)
+    __tablename__ = "planet"
 
-    favorites: Mapped[list["Favorite"]] = relationship(
-        "Favorite",
-        back_populates="planet",
-        cascade="all, delete-orphan"
-    )
+    id              = db.Column(db.Integer, primary_key=True)
+    name            = db.Column(db.String(120), unique=True, nullable=False)
+    climate         = db.Column(db.String(120))
+    terrain         = db.Column(db.String(120))
+    population      = db.Column(db.String(50))
+    diameter        = db.Column(db.String(50))
+    gravity         = db.Column(db.String(80))
+    orbital_period  = db.Column(db.String(50))
+    rotation_period = db.Column(db.String(50))
+    surface_water   = db.Column(db.String(50))
+
+    residents       = db.relationship("Person", back_populates="homeworld", lazy=True)
+
+    def __repr__(self):
+        return f"<Planet {self.name}>"
 
     def serialize(self):
         return {
-            "id": self.id,
-            "name": self.name,
-            "climate": self.climate,
-            "terrain": self.terrain,
-            "population": self.population,
-            "diameter": self.diameter,
-            "gravity": self.gravity
+            "id":              self.id,
+            "name":            self.name,
+            "climate":         self.climate,
+            "terrain":         self.terrain,
+            "population":      self.population,
+            "diameter":        self.diameter,
+            "gravity":         self.gravity,
+            "orbital_period":  self.orbital_period,
+            "rotation_period": self.rotation_period,
+            "surface_water":   self.surface_water,
+        }
+
+
+class Person(db.Model):
+    __tablename__ = "person"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    name         = db.Column(db.String(120), unique=True, nullable=False)
+    birth_year   = db.Column(db.String(50))
+    eye_color    = db.Column(db.String(50))
+    gender       = db.Column(db.String(50))
+    hair_color   = db.Column(db.String(50))
+    height       = db.Column(db.String(50))
+    mass         = db.Column(db.String(50))
+    skin_color   = db.Column(db.String(50))
+    homeworld_id = db.Column(db.Integer, db.ForeignKey("planet.id"), nullable=True)
+
+    homeworld    = db.relationship("Planet", back_populates="residents")
+
+    def __repr__(self):
+        return f"<Person {self.name}>"
+
+    def serialize(self):
+        return {
+            "id":          self.id,
+            "name":        self.name,
+            "birth_year":  self.birth_year,
+            "eye_color":   self.eye_color,
+            "gender":      self.gender,
+            "hair_color":  self.hair_color,
+            "height":      self.height,
+            "mass":        self.mass,
+            "skin_color":  self.skin_color,
+            "homeworld":   self.homeworld.name if self.homeworld else None,
+            "homeworld_id": self.homeworld_id,
         }
 
 
 class Favorite(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
+    __tablename__ = "favorite"
 
-    user_id: Mapped[int] = mapped_column(
-        ForeignKey("user.id"),
-        nullable=False
-    )
+    id        = db.Column(db.Integer, primary_key=True)
+    user_id   = db.Column(db.Integer, db.ForeignKey("user.id"),   nullable=False)
+    planet_id = db.Column(db.Integer, db.ForeignKey("planet.id"), nullable=True)
+    person_id = db.Column(db.Integer, db.ForeignKey("person.id"), nullable=True)
 
-    people_id: Mapped[int] = mapped_column(
-        ForeignKey("people.id"),
-        nullable=True
-    )
+    user      = db.relationship("User",   back_populates="favorites")
+    planet    = db.relationship("Planet", lazy=True)
+    person    = db.relationship("Person", lazy=True)
 
-    planet_id: Mapped[int] = mapped_column(
-        ForeignKey("planet.id"),
-        nullable=True
-    )
-
-    user: Mapped["User"] = relationship(
-        "User",
-        back_populates="favorites"
-    )
-
-    people: Mapped["People"] = relationship(
-        "People",
-        back_populates="favorites"
-    )
-
-    planet: Mapped["Planet"] = relationship(
-        "Planet",
-        back_populates="favorites"
-    )
+    def __repr__(self):
+        return f"<Favorite user={self.user_id}>"
 
     def serialize(self):
-        return {
-            "id": self.id,
-            "user_id": self.user_id,
-            "people": self.people.serialize() if self.people else None,
-            "planet": self.planet.serialize() if self.planet else None
-        }
+        result = {"id": self.id, "user_id": self.user_id}
+        if self.planet_id:
+            result["type"] = "planet"
+            result["item"] = self.planet.serialize() if self.planet else None
+        elif self.person_id:
+            result["type"] = "people"
+            result["item"] = self.person.serialize() if self.person else None
+        return result
